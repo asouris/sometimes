@@ -1,7 +1,7 @@
 # timestruck
 Web app to measure time :)
 
-# How to
+## How to
 First clone this repo.
 
 Then make a python environment and install requirements.
