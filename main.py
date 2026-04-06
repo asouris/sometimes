@@ -4,10 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import time
 import json
 
-with open('backend/data.json', 'r') as file:
-    data = json.load(file)
+# with open('backend/data.json', 'r') as file:
+#     data = json.load(file)
 
-print(data)
+# print(data)
 
 
 app = FastAPI()
@@ -90,15 +90,15 @@ class Project:
 
 
 projects = []
-for p in data.values():
-    new_project = Project(p['name'])
-    new_project.id = p['id']
-    new_project.total = p['total']
-    new_project.history = p['history']
+# for p in data.values():
+#     new_project = Project(p['name'])
+#     new_project.id = p['id']
+#     new_project.total = p['total']
+#     new_project.history = p['history']
 
-    projects.append(new_project)
+#     projects.append(new_project)
 
-print(projects)
+# print(projects)
 
 @app.get("/")
 def read_root():
