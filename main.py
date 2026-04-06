@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -162,3 +163,7 @@ def save():
         f.write(json.dumps(result, indent=4))
 
     return {"state" : "success"}
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False, workers=1)
