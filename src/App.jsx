@@ -7,6 +7,7 @@ import { IoStopCircleOutline } from "react-icons/io5";
 
 import { useState, useEffect } from 'react'
 import axios from 'axios';
+import { fetch } from '@tauri-apps/plugin-http';
 
 import Timer from "./Timer.jsx";
 
@@ -19,80 +20,89 @@ function App() {
     const [showingProject, setShowingProject] = useState(null);
 
     useEffect(() => {
-        axios.get(API + "/projects")
-        .then(function (response) {
-            const res = response.data;
-            const arrayLike = Object.values(res);
-            setProjects(arrayLike);
-        })
-        .catch(function (error) {
-            // handle error
-            console.log(error);
-        });
-    }, [showingProject]);
+        const loadProjects = async () => {
+            try {
+                const response = await fetch(API + "/projects", { method: 'GET' });
+                const data = await response.json();
+                const arrayLike = Object.values(data);
+                setProjects(arrayLike);
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
+        loadProjects();
+    }, []);
 
     function showProject (index){
         setShowingProject(projects[index]);
-        console.log(showingProject);
-        console.log(showingProject.state);
-        console.log(showingProject.state==="Not tracking");
     }
 
-    function update () {
-        axios.get(API + "/projects")
-        .then(function (response) {
-            const res = response.data;
-            const arrayLike = Object.values(res);
+    async function update() {
+        try {
+            const response = await fetch(API + "/projects");
+            const data = await response.json();
+            const arrayLike = Object.values(data);
             setProjects(arrayLike);
-        })
-        .catch(function (error) {
-            // handle error
+        } catch (error) {
             console.log(error);
-        });
+        }
     }
 
-    function addProject (){
+    async function addProject() {
         let name = document.getElementById('projectname').value;
-        if( name === ""){
+        if (name === "") {
             name = "-";
         }
-        axios.get(API + `/new_project?name=${name}`)
-        .then(function (res) {
+
+        try {
+            await fetch(API + `/new_project?name=${name}`);
             console.log("project created");
-            update();
-        })
-        .catch(function (error) {
+            await update();
+        } catch (error) {
             console.log(error);
-        });
+        }
 
         document.getElementById('projectname').value = "";
     }
 
-    function startTimer (index){
+    async function startTimer(index) {
         let desc = document.getElementById('timerdesc').value;
-        if (desc===""){
+        if (desc === "") {
             desc = "-";
         }
-        axios.get(API + `/projects/${index}/track?q=${desc}`)
-        .then(function (res) {
+
+        try {
+            await fetch(API + `/projects/${index}/track?q=${desc}`);
             console.log("timer started");
-            update(index);
-        })
-        .catch(function (error) {
+            await update();
+        } catch (error) {
             console.log(error);
-        });
+        }
     }
 
-    function stopTimer (index){
-        axios.get(API + `/projects/${index}/stop`)
-        .then(function (res) {
+    async function stopTimer(index) {
+        try {
+            await fetch(API + `/projects/${index}/stop`);
             console.log("timer stopped");
-            update();
-        })
-        .catch(function (error) {
-            console.log(error);
-        });
+            await update();
 
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    async function save() {
+        try {
+            await fetch(API + "/save");
+            console.log("saved data");
+            setMsgVisible(true);
+            setTimeout(() => {
+                setMsgVisible(false);
+            }, 3000);
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     function toreadableTime(seconds){
@@ -100,22 +110,6 @@ function App() {
     }
 
     const [msgVisible, setMsgVisible] = useState(false);
-
-    function save(){
-        axios.get(API + "/save")
-        .then(function (res) {
-            console.log("saved data");
-            setMsgVisible(true);
-            const timeoutID = setTimeout(() => {
-                setMsgVisible(false);
-            }, 3000);
-        })
-        .catch(function (error) {
-            console.log(error);
-        });
-    }
-
-
 
     return (
         <div className="flex h-screen items-center justify-center">
@@ -139,7 +133,7 @@ function App() {
                         (<div className="flex flex-col h-full">
                             <div className="flex items-center px-3 pb-2">
                                 <IoTimeOutline size={20}/>
-                                <div className="text-lg px-3">{toreadableTime(showingProject.total)}</div>
+                                <div className="text-lg px-3">{toreadableTime(projects[showingProject.id].total)}</div>
                             </div>
                             <div className="flex flex-col border rounded grow h-4/5">
                                 {(projects[showingProject.id].state==="Not tracking") ?

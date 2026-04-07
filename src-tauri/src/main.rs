@@ -1,5 +1,3 @@
-
-
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -16,17 +14,9 @@ fn toggle_fullscreen(window: tauri::Window) {
 }
 
 // Helper function to spawn the sidecar and monitor its stdout/stderr
+use tokio::sync::oneshot;
 fn spawn_and_monitor_sidecar(app_handle: tauri::AppHandle) -> Result<(), String> {
-    // Check if a sidecar process already exists
-    if let Some(state) = app_handle.try_state::<Arc<Mutex<Option<CommandChild>>>>() {
-        let child_process = state.lock().unwrap();
-        if child_process.is_some() {
-            // A sidecar is already running, do not spawn a new one
-            println!("[tauri] Sidecar is already running. Skipping spawn.");
-            return Ok(()); // Exit early since sidecar is already running
-        }
-    }
-    // Spawn sidecar
+    let (ready_tx, ready_rx) = oneshot::channel();
     let sidecar_command = app_handle
         .shell()
         .sidecar("main")
@@ -41,12 +31,18 @@ fn spawn_and_monitor_sidecar(app_handle: tauri::AppHandle) -> Result<(), String>
 
     // Spawn an async task to handle sidecar communication
     tauri::async_runtime::spawn(async move {
+        let mut ready_tx = Some(ready_tx);
         while let Some(event) = rx.recv().await {
             match event {
                 CommandEvent::Stdout(line_bytes) => {
                     let line = String::from_utf8_lossy(&line_bytes);
                     println!("Sidecar stdout: {}", line);
-                    // Emit the line to the frontend
+
+                    if line.contains("READY") {
+                        if let Some(tx) = ready_tx.take() {
+                            let _ = tx.send(());
+                        }
+                    }
                     app_handle
                         .emit("sidecar-stdout", line.to_string())
                         .expect("Failed to emit sidecar stdout event");
@@ -63,6 +59,10 @@ fn spawn_and_monitor_sidecar(app_handle: tauri::AppHandle) -> Result<(), String>
             }
         }
     });
+
+    tauri::async_runtime::block_on(async {
+        ready_rx.await.map_err(|_| "Sidecar failed to signal readiness".to_string())
+    })?;
 
     Ok(())
 }
@@ -109,6 +109,7 @@ fn start_sidecar(app_handle: tauri::AppHandle) -> Result<String, String> {
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
         // Add any necessary plugins
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
@@ -120,6 +121,9 @@ fn main() {
             println!("[tauri] Creating sidecar...");
             spawn_and_monitor_sidecar(app_handle).ok();
             println!("[tauri] Sidecar spawned and monitoring started.");
+
+            let window = app.get_webview_window("main").unwrap();
+            window.show().unwrap();
             Ok(())
         })
         // Register the shutdown_server command
@@ -137,17 +141,10 @@ fn main() {
                     app_handle.try_state::<Arc<Mutex<Option<CommandChild>>>>()
                 {
                     if let Ok(mut child) = child_process.lock() {
-                        if let Some(process) = child.as_mut() {
-                            // Send msg via stdin to sidecar where it self terminates
-                            let command = "sidecar shutdown\n";
-                            let buf: &[u8] = command.as_bytes();
-                            let _ = process.write(buf);
-
-                            // *Important* `process.kill()` will only shutdown the parent sidecar (python process). Tauri doesnt know about the second process spawned by the "bootloader" script.
-                            // This only applies if you compile a "one-file" exe using PyInstaller. Otherwise, just use the line below to kill the process normally.
-                            // let _ = process.kill();
-
-                            println!("[tauri] Sidecar closed.");
+                    
+                        if let Some(process) = child.take() {
+                            let _ = process.kill();
+                            println!("[tauri] Sidecar process killed and state cleared.");
                         }
                     }
                 }

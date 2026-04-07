@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
+import { fetch } from '@tauri-apps/plugin-http';
 
 const API = "http://127.0.0.1:8000"
 
@@ -13,19 +14,20 @@ function Timer({id}){
     const [timer, setTimer] = useState(null);
 
     useEffect(() => {
-    const check = () => {
-        axios.get(API + `/projects/${id}/time`)
-        .then((res) => {
-            setTimer(res.data);
-        })
-        .catch(function (error) {
-            console.log(error);
-        });
-    };
-    check();
-    const interval = setInterval(check, 1000);
-    return () => clearInterval(interval);
-    }, [API]);
+        const check = async () => {
+            try {
+                const res = await fetch(API + `/projects/${id}/time`);
+                const data = await res.json()
+                setTimer(data);
+            } catch (error) {
+                console.error("Error fetching timer:", error);
+            }
+        };
+
+        check();
+        const interval = setInterval(check, 1000);
+        return () => clearInterval(interval);
+    }, [id]);
 
     return (
         <div className="flex border border-white">

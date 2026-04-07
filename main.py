@@ -1,20 +1,32 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import psutil
+from pathlib import Path
 
 import time
 import json
+import threading
+import time
+import os
 
-# with open('backend/data.json', 'r') as file:
-#     data = json.load(file)
+import subprocess
 
-# print(data)
+def check_tauri():
+    tauri = psutil.Process(os.getppid())
+    while True:
+        if not tauri.is_running():
+            os._exit(0)
+        time.sleep(2)
+
+threading.Thread(target=check_tauri, daemon=True).start()
 
 
 app = FastAPI()
 origins = [
     "http://localhost:8080",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "tauri://localhost"
 ]
 
 app.add_middleware(
@@ -91,19 +103,25 @@ class Project:
 
 
 projects = []
-# for p in data.values():
-#     new_project = Project(p['name'])
-#     new_project.id = p['id']
-#     new_project.total = p['total']
-#     new_project.history = p['history']
 
-#     projects.append(new_project)
+path = Path('backend/data.json')
+if path.exists():
+    with open('backend/data.json', 'r') as file:
+        data = json.load(file)
 
-# print(projects)
+    for p in data.values():
+        new_project = Project(p['name'])
+        new_project.id = p['id']
+        new_project.total = p['total']
+        new_project.history = p['history']
+
+        projects.append(new_project)
+
+print("READY", flush=True)
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"Hello": "everynyan"}
 
 @app.get("/projects")
 def getProjects():
@@ -146,7 +164,6 @@ def save():
     for p in projects:
         history = []
         for h in p.history:
-            print(h)
             history.append({
                 "desc" : h['desc'],
                 "total" : h['total']
@@ -159,6 +176,9 @@ def save():
             "history": history,
         }
 
+
+
+    print(subprocess.run(["ls", "-l"]))
     with open("backend/data.json", "w") as f:
         f.write(json.dumps(result, indent=4))
 
