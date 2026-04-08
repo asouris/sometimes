@@ -1,5 +1,6 @@
 # timestruck
-Web app to measure time :)
+Web app to measure time :). Works on linux.
+
 
 ## How run
 First clone this repo.

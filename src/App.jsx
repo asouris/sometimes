@@ -25,7 +25,11 @@ const mixedFetch = async (url) => {
       throw error;
     }
   } else {
-    return await window.fetch(url);
+    return await window.fetch(url, {
+        headers: {
+            'content-type': 'application/json'
+        }}
+    );
   }
 };
 
