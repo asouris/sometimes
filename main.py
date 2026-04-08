@@ -10,6 +10,9 @@ import json
 import threading
 import time
 import os
+import sys
+
+resource_dir = sys.argv[1]
 
 def check_tauri():
     tauri = psutil.Process(os.getppid())
@@ -104,9 +107,9 @@ class Project:
 projects = deque()
 
 
-path = Path('backend/data.json')
+path = Path(resource_dir)
 if path.exists():
-    with open('backend/data.json', 'r') as file:
+    with open(resource_dir, 'r') as file:
         data = json.load(file)
 
     for p in data.values():
@@ -169,7 +172,7 @@ def save():
         }
 
 
-    with open("backend/data.json", "w") as f:
+    with open(resource_dir, "w") as f:
         f.write(json.dumps(result, indent=4))
 
     return {"state" : "success"}

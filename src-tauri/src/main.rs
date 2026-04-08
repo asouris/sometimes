@@ -17,10 +17,12 @@ fn toggle_fullscreen(window: tauri::Window) {
 use tokio::sync::oneshot;
 fn spawn_and_monitor_sidecar(app_handle: tauri::AppHandle) -> Result<(), String> {
     let (ready_tx, ready_rx) = oneshot::channel();
+    let resource_path = app_handle.path().resolve("../backend/data.json", tauri::path::BaseDirectory::Resource).unwrap();
     let sidecar_command = app_handle
         .shell()
-        .sidecar("main")
-        .map_err(|e| e.to_string())?;
+        .sidecar("main").unwrap()
+        .arg(resource_path.to_str().unwrap());
+        
     let (mut rx, child) = sidecar_command.spawn().map_err(|e| e.to_string())?;
     // Store the child process in the app state
     if let Some(state) = app_handle.try_state::<Arc<Mutex<Option<CommandChild>>>>() {
