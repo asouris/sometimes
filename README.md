@@ -1,4 +1,4 @@
-# timestruck
+# sometimes
 Web app to measure time :). Works on linux.
 ![screenshot](img/screenshot.png)
 
