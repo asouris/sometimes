@@ -23,7 +23,7 @@ npm install
 Then build the app with tauri, this takes a lot of time...
 
 ```
-npm run tauri build
+npm run build:all
 ```
 
 The app will be in `src-tauri/target/release/app`
