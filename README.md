@@ -19,13 +19,16 @@ Then install some libraries
 ```
 npm install
 ```
+
 Then build the app with tauri, this takes a lot of time...
+
 ```
 npm run tauri build
 ```
+
 The app will be in `src-tauri/target/release/app`
-```
 You can run it with 
+
 ```
 ./src-tauri/target/release/app
 ```
