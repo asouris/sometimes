@@ -1,6 +1,6 @@
 # timestruck
 Web app to measure time :). Works on linux.
-
+![screenshot](img/screenshot.png)
 
 ## How run
 First clone this repo.
