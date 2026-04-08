@@ -17,7 +17,8 @@ function App() {
     const [count, setCount] = useState(0);
     const [projects, setProjects] = useState([]);
 
-    const [showingProject, setShowingProject] = useState(null);
+    const [showingIndex, setShowingIndex] = useState(null);
+    const [msgVisible, setMsgVisible] = useState(false);
 
     useEffect(() => {
         const loadProjects = async () => {
@@ -35,7 +36,9 @@ function App() {
     }, []);
 
     function showProject (index){
-        setShowingProject(projects[index]);
+        console.log(index);
+        setShowingIndex(index);
+        console.log(showingIndex);
     }
 
     async function update() {
@@ -69,7 +72,7 @@ function App() {
     async function startTimer(index) {
         let desc = document.getElementById('timerdesc').value;
         if (desc === "") {
-            desc = "-";
+            desc = "...";
         }
 
         try {
@@ -109,53 +112,121 @@ function App() {
         return new Date(seconds * 1000).toISOString().substring(11, 19);
     }
 
-    const [msgVisible, setMsgVisible] = useState(false);
+
+    useEffect(() => {
+        const handleKeyUp = (event) => {
+            if (event.key === 'Enter') {
+                const projectField = document.getElementById('projectname');
+                if(document.activeElement === projectField){
+                    addProject();
+                }
+                else{
+                    const descField = document.getElementById('timerdesc');
+                    if(document.activeElement === descField){
+                        startTimer(showingIndex);
+                    }
+                    else{
+                        stopTimer(showingIndex);
+                    }
+                }
+                
+            }
+            if (event.ctrlKey && event.key === 'n') {
+                const projectField = document.getElementById('projectname');
+                projectField.focus();
+            }
+            if (event.ctrlKey && event.key === 't') {
+                if (showingIndex!=null){
+                    const descField = document.getElementById('timerdesc');
+                    descField.focus()
+                }
+            }
+            if(event.shiftKey && event.ctrlKey && event.key === 't') {
+                if (showingIndex!=null){
+                    startTimer(showingIndex);
+                }
+            }
+            if(event.key === 'j' && document.activeElement === document.body){
+                if(showingIndex!=null){
+                    const mod = (n, d) => ((n % d) + d) % d;
+                    setShowingIndex(mod(showingIndex-1, projects.length));
+                }
+                else{
+                    setShowingIndex(0);
+                }
+            }
+            if(event.key === 'k' && document.activeElement === document.body){
+                console.log("herreeeeee");
+                if(showingIndex!=null){
+                    const mod = (n, d) => ((n % d) + d) % d;
+                    setShowingIndex(mod(showingIndex+1, projects.length))
+                }
+                else{
+                    console.log("somehow an aerror");
+                    setShowingIndex(projects.length - 1);
+                }
+            }
+            if(event.key === 'Escape'){
+                document.getElementById('projectname').blur();
+                document.getElementById('timerdesc').blur();
+            }
+            if (event.ctrlKey && event.key === 's'){
+                console.log("saving");
+                save();
+            }
+
+        }
+
+        document.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            document.removeEventListener('keyup', handleKeyUp);
+        };
+    }, [showingIndex, projects]);
 
     return (
         <div className="flex h-screen items-center justify-center">
             <div className="w-1/2 border border-black rounded flex">
                 <div className="h-80 overflow-scroll w-1/3 bg-gray-100 border-r border-black rounded-l flex flex-col">
+                    <div className="border-b border-black p-3 hover:bg-gray-200 flex items-center justify-center">
+                        <input id="projectname" className="focus:outline-none bg-transparent px-1 border-b border-black grow min-w-0" type="text" placeholder="name..."/> 
+                        <button onClick={() => addProject()} className="pl-2" ><IoAdd size={20}/></button>
+                    </div>
                     {projects.map((proj, index) => (
-                        <button onClick={() => showProject(index)} className="p-3 border-b border-black hover:bg-gray-200">
+                        <button onClick={() => showProject(index)} className={`p-3 border-b border-black hover:bg-gray-200 ${index==showingIndex ? "bg-gray-200" : "bg-gray-100"}`}>
                             <div className="text-lg">{proj.name}</div>
                         </button>
                     ))
 
                     }
-                    <div className="p-3 hover:bg-gray-200 flex items-center justify-center">
-                        <input id="projectname" className="px-1 border rounded grow min-w-0" type="text" placeholder="name..."/> 
-                        <button onClick={() => addProject()} className="pl-2" ><IoAdd size={20}/></button>
-                    </div>
 
                 </div>
-                <div className="min-w-0 grow h-80 p-3 flex flex-col">
-                    {showingProject ?
+                <div className="min-w-0 w-1/2 grow h-80 p-3 flex flex-col">
+                    {showingIndex!=null ?
                         (<div className="flex flex-col h-full">
                             <div className="flex items-center px-3 pb-2">
                                 <IoTimeOutline size={20}/>
-                                <div className="text-lg px-3">{toreadableTime(projects[showingProject.id].total)}</div>
+                                <div className="text-lg px-3">{toreadableTime(projects[showingIndex].total)}</div>
                             </div>
                             <div className="flex flex-col border rounded grow h-4/5">
-                                {(projects[showingProject.id].state==="Not tracking") ?
+                                {(projects[showingIndex].state==="Not tracking") ?
                                     (
                                         <div className="flex p-3">
-                                            <button onClick={() => startTimer(showingProject.id)} className="pr-2"><IoPlayCircleOutline size={20}/></button>
-                                            <input id="timerdesc" className="border rounded grow min-w-0" type="text" /> 
+                                            <div className="pr-2 ">{toreadableTime(0)}</div>
+                                            <input id="timerdesc" className="focus:outline-none border-b border-black grow min-w-0" type="text" /> 
+                                            <button onClick={() => startTimer(showingIndex)} className="pl-2"><IoPlayCircleOutline size={20}/></button>
                                         </div>
                                     ) :
                                     (
-                                        <div className="flex p-3">
-                                            <button onClick={() => stopTimer(showingProject.id)} className="pr-2 animate-pulse"><IoStopCircleOutline size={20}/></button>
-                                            <div className="pr-2 font-light">
-                                                {showingProject.currentTracker && showingProject.currentTracker.desc}
-                                            </div>
-                                            <Timer id={showingProject.id}/>
+                                        <div className="flex p-3 justify-end">
+                                            <Timer id={showingIndex} currentText={document.getElementById('timerdesc').value}/>
+                                            <button onClick={() => stopTimer(showingIndex)} className="pl-2 animate-pulse"><IoStopCircleOutline size={20}/></button>
                                         </div>
                                     )
                                 }
                                 <div className="h-full flex flex-col overflow-scroll">
                                     <div className="px-3">History</div>
-                                    {projects[showingProject.id].history.map((entry, i) => (
+                                    {projects[showingIndex].history.map((entry, i) => (
                                         <div className="flex border-t px-3 hover:bg-gray-100">
                                             <div className="font-mono">{toreadableTime(entry.total)}</div>
                                             <div className="pl-2 font-light">{entry.desc}</div>

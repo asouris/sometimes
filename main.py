@@ -3,14 +3,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import psutil
 from pathlib import Path
+from collections import deque
 
 import time
 import json
 import threading
 import time
 import os
-
-import subprocess
 
 def check_tauri():
     tauri = psutil.Process(os.getppid())
@@ -57,7 +56,7 @@ class Project:
         self.id = len(projects)
         
         self.total = 0
-        self.history = []
+        self.history = deque()
         self.currentTracker = None
         self.state = "Not tracking"
 
@@ -78,7 +77,7 @@ class Project:
 
         totalTime = self.currentTracker.getElapsed()
 
-        self.history.append({'desc': self.currentTracker.desc, 'total': totalTime})
+        self.history.appendleft({'desc': self.currentTracker.desc, 'total': totalTime})
         self.total += totalTime
 
         self.currentTracker=None
@@ -102,7 +101,8 @@ class Project:
 
 
 
-projects = []
+projects = deque()
+
 
 path = Path('backend/data.json')
 if path.exists():
@@ -113,7 +113,7 @@ if path.exists():
         new_project = Project(p['name'])
         new_project.id = p['id']
         new_project.total = p['total']
-        new_project.history = p['history']
+        new_project.history = deque(p['history'])
 
         projects.append(new_project)
 
@@ -126,20 +126,17 @@ def read_root():
 @app.get("/projects")
 def getProjects():
     res = {}
+    i = 0
     for p in projects:
-        res[p.id] = p
+        res[i] = p
+        i+=1
     return res
-
-@app.get("/projects/{p_id}")
-def getProject(p_id: int):
-    return projects[p_id]
 
 @app.get("/new_project")
 def makeProject(name:str):
     newProject = Project(name)
-    new_id = newProject.id
-    projects.append(newProject)
-    return projects[new_id]
+    projects.appendleft(newProject)
+    return projects[0]
 
 @app.get("/projects/{p_id}/track")
 def trackProject(p_id: int, q: str | None = "none"):
@@ -152,11 +149,6 @@ def stopTrackProject(p_id: int):
 @app.get("/projects/{p_id}/time")
 def getProjectTime(p_id: int):
     return projects[p_id].update()
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
-
 
 @app.get("/save")
 def save():
@@ -177,8 +169,6 @@ def save():
         }
 
 
-
-    print(subprocess.run(["ls", "-l"]))
     with open("backend/data.json", "w") as f:
         f.write(json.dumps(result, indent=4))
 

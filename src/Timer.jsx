@@ -9,7 +9,7 @@ function toreadableTime(seconds){
 }
 
 
-function Timer({id}){
+function Timer({id, currentText}){
 
     const [timer, setTimer] = useState(null);
 
@@ -30,18 +30,23 @@ function Timer({id}){
     }, [id]);
 
     return (
-        <div className="flex border border-white">
+        <>
             {timer ?
                 ((timer.currentTracker) ?
-                    (<div className="flex">
-                        <div className="pr-2">{timer.currentTracker.desc}</div>
-                        <div>{toreadableTime(timer.currentTracker.tillNow)}</div>
+                    (<div className="flex grow">
+                        <div className="pr-2">{toreadableTime(timer.currentTracker.tillNow)}</div>
+                        <div className='grow border-b border-white'>{timer.currentTracker.desc}</div>
                     </div>) :
-                    "loading current tracker") :
-                ("loading timer...")
+                    (<div className="flex grow">
+                        <div className="pr-2">{toreadableTime(0)}</div>
+                        <div className='grow border-b border-white'>{currentText}</div>
+                    </div>)) :
+                (<div className="flex grow">
+                    <div className="pr-2">{toreadableTime(0)}</div>
+                    <div className='grow border-b border-white'>{currentText}</div>
+                </div>)
             }
-        </div>
-
+        </>
     )
 
 }
