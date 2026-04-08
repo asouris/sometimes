@@ -135,13 +135,13 @@ function App() {
                 const projectField = document.getElementById('projectname');
                 projectField.focus();
             }
-            if (event.ctrlKey && event.key === 't') {
+            if (event.ctrlKey && event.key === 'd') {
                 if (showingIndex!=null){
                     const descField = document.getElementById('timerdesc');
                     descField.focus()
                 }
             }
-            if(event.shiftKey && event.ctrlKey && event.key === 't') {
+            if(event.ctrlKey && event.key === 't') {
                 if (showingIndex!=null){
                     startTimer(showingIndex);
                 }
@@ -187,14 +187,14 @@ function App() {
     return (
         <div className="flex h-screen items-center justify-center">
             <div className="w-1/2 border border-black rounded flex">
-                <div className="h-80 overflow-scroll w-1/3 bg-gray-100 border-r border-black rounded-l flex flex-col">
+                <div className="h-80 w-1/3 bg-gray-100 border-r border-black rounded-l flex flex-col">
                     <div className="border-b border-black p-3 hover:bg-gray-200 flex items-center justify-center">
                         <input id="projectname" className="focus:outline-none bg-transparent px-1 border-b border-black grow min-w-0" type="text" placeholder="name..."/> 
                         <button onClick={() => addProject()} className="pl-2" ><IoAdd size={20}/></button>
                     </div>
                     {projects.map((proj, index) => (
-                        <button onClick={() => showProject(index)} className={`p-3 border-b border-black hover:bg-gray-200 ${index==showingIndex ? "bg-gray-200" : "bg-gray-100"}`}>
-                            <div className="text-lg">{proj.name}</div>
+                        <button onClick={() => showProject(index)} className={`text-wrap p-3 border-b border-black hover:bg-gray-200 ${index==showingIndex ? "bg-gray-200" : "bg-gray-100"}`}>
+                            <div className="break-words text-wrap text-lg">{proj.name}</div>
                         </button>
                     ))
 
@@ -229,7 +229,7 @@ function App() {
                                     {projects[showingIndex].history.map((entry, i) => (
                                         <div className="flex border-t px-3 hover:bg-gray-100">
                                             <div className="font-mono">{toreadableTime(entry.total)}</div>
-                                            <div className="pl-2 font-light">{entry.desc}</div>
+                                            <div className="break-words text-wrap pl-2 font-light">{entry.desc}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -247,6 +247,9 @@ function App() {
             <button onClick={() => save()} className="m-6 py-3 px-5 rounded rounded-lg bg-black text-white absolute bottom-0 right-0">
                 Save
             </button>
+            <div className="font-mono m-6 py-3 absolute bottom-0">
+                j, k to select project, ctr+t to track
+            </div>
         </div>
     )
 }
