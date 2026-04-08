@@ -33,3 +33,19 @@ You can run it with
 ```
 ./src-tauri/target/release/app
 ```
+
+## If your are not on linux
+You could run the frontend with
+```
+npm install
+npm run build
+npx --yes serve -s dist
+```
+Then the backend
+```
+python3 -m venv venv 
+source venv/bin/activate
+pip install --upgrade pip 
+pip install fastapi psutil uvicorn 
+python main.py
+```
