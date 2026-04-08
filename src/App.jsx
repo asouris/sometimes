@@ -7,11 +7,29 @@ import { IoStopCircleOutline } from "react-icons/io5";
 
 import { useState, useEffect } from 'react'
 import axios from 'axios';
-import { fetch } from '@tauri-apps/plugin-http';
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
 import Timer from "./Timer.jsx";
 
 const API = "http://127.0.0.1:8000"
+const isTauri = '__TAURI_INTERNALS__' in window;
+
+const mixedFetch = async (url) => {
+  const isTauri = '__TAURI_INTERNALS__' in window;
+
+  if (isTauri) {
+    try {
+      return await tauriFetch(url);
+    } catch (error) {
+      console.error("Tauri Fetch Error:", error);
+      throw error;
+    }
+  } else {
+    return await window.fetch(url);
+  }
+};
+
+console.log(isTauri);
 
 function App() {
     const [count, setCount] = useState(0);
@@ -23,7 +41,7 @@ function App() {
     useEffect(() => {
         const loadProjects = async () => {
             try {
-                const response = await fetch(API + "/projects", { method: 'GET' });
+                const response = await mixedFetch(API + "/projects");
                 const data = await response.json();
                 const arrayLike = Object.values(data);
                 setProjects(arrayLike);
@@ -43,7 +61,7 @@ function App() {
 
     async function update() {
         try {
-            const response = await fetch(API + "/projects");
+            const response = await mixedFetch(API + "/projects");
             const data = await response.json();
             const arrayLike = Object.values(data);
             setProjects(arrayLike);
@@ -59,7 +77,7 @@ function App() {
         }
 
         try {
-            await fetch(API + `/new_project?name=${name}`);
+            await mixedFetch(API + `/new_project?name=${name}`);
             console.log("project created");
             await update();
         } catch (error) {
@@ -76,7 +94,7 @@ function App() {
         }
 
         try {
-            await fetch(API + `/projects/${index}/track?q=${desc}`);
+            await mixedFetch(API + `/projects/${index}/track?q=${desc}`);
             console.log("timer started");
             await update();
         } catch (error) {
@@ -86,7 +104,7 @@ function App() {
 
     async function stopTimer(index) {
         try {
-            await fetch(API + `/projects/${index}/stop`);
+            await mixedFetch(API + `/projects/${index}/stop`);
             console.log("timer stopped");
             await update();
 
@@ -97,7 +115,7 @@ function App() {
 
     async function save() {
         try {
-            await fetch(API + "/save");
+            await mixedFetch(API + "/save");
             console.log("saved data");
             setMsgVisible(true);
             setTimeout(() => {
@@ -189,11 +207,11 @@ function App() {
             <div className="w-1/2 border border-black rounded flex">
                 <div className="h-80 w-1/3 bg-gray-100 border-r border-black rounded-l flex flex-col">
                     <div className="border-b border-black p-3 hover:bg-gray-200 flex items-center justify-center">
-                        <input id="projectname" className="focus:outline-none bg-transparent px-1 border-b border-black grow min-w-0" type="text" placeholder="name..."/> 
+                        <input id="projectname" className="font-sans focus:outline-none bg-transparent px-1 border-b border-black grow min-w-0" type="text" placeholder="name..."/> 
                         <button onClick={() => addProject()} className="pl-2" ><IoAdd size={20}/></button>
                     </div>
                     {projects.map((proj, index) => (
-                        <button onClick={() => showProject(index)} className={`text-wrap p-3 border-b border-black hover:bg-gray-200 ${index==showingIndex ? "bg-gray-200" : "bg-gray-100"}`}>
+                        <button onClick={() => showProject(index)} className={`focus:outline-none text-wrap p-3 border-b border-black hover:bg-gray-200 ${index==showingIndex ? "bg-gray-200" : "bg-gray-100"}`}>
                             <div className="break-words text-wrap text-lg">{proj.name}</div>
                         </button>
                     ))
@@ -206,21 +224,21 @@ function App() {
                         (<div className="flex flex-col h-full">
                             <div className="flex items-center px-3 pb-2">
                                 <IoTimeOutline size={20}/>
-                                <div className="text-lg px-3">{toreadableTime(projects[showingIndex].total)}</div>
+                                <div className="text-lg px-3 font-mono ">{toreadableTime(projects[showingIndex].total)}</div>
                             </div>
                             <div className="flex flex-col border rounded grow h-4/5">
                                 {(projects[showingIndex].state==="Not tracking") ?
                                     (
                                         <div className="flex p-3">
-                                            <div className="pr-2 ">{toreadableTime(0)}</div>
+                                            <div className="pr-2 font-mono">{toreadableTime(0)}</div>
                                             <input id="timerdesc" className="focus:outline-none border-b border-black grow min-w-0" type="text" /> 
-                                            <button onClick={() => startTimer(showingIndex)} className="pl-2"><IoPlayCircleOutline size={20}/></button>
+                                            <button onClick={() => startTimer(showingIndex)} className="pl-2"><IoPlayCircleOutline size={25}/></button>
                                         </div>
                                     ) :
                                     (
                                         <div className="flex p-3 justify-end">
                                             <Timer id={showingIndex} currentText={document.getElementById('timerdesc').value}/>
-                                            <button onClick={() => stopTimer(showingIndex)} className="pl-2 animate-pulse"><IoStopCircleOutline size={20}/></button>
+                                            <button onClick={() => stopTimer(showingIndex)} className="pl-2 animate-pulse"><IoStopCircleOutline size={25}/></button>
                                         </div>
                                     )
                                 }
@@ -228,7 +246,7 @@ function App() {
                                     <div className="px-3">History</div>
                                     {projects[showingIndex].history.map((entry, i) => (
                                         <div className="flex border-t px-3 hover:bg-gray-100">
-                                            <div className="font-mono">{toreadableTime(entry.total)}</div>
+                                            <div className="font-mono font-light">{toreadableTime(entry.total)}</div>
                                             <div className="break-words text-wrap pl-2 font-light">{entry.desc}</div>
                                         </div>
                                     ))}
@@ -247,8 +265,8 @@ function App() {
             <button onClick={() => save()} className="m-6 py-3 px-5 rounded rounded-lg bg-black text-white absolute bottom-0 right-0">
                 Save
             </button>
-            <div className="font-mono m-6 py-3 absolute bottom-0">
-                j, k to select project, ctr+t to track
+            <div className="text-center text-sm font-mono m-6 py-3 absolute bottom-0">
+                ctrl+n to name project, j and k to select project <br></br>ctrl+t to track, ctrl+d to add description
             </div>
         </div>
     )

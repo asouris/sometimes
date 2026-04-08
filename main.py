@@ -12,7 +12,7 @@ import time
 import os
 import sys
 
-resource_dir = sys.argv[1]
+resource_dir = sys.argv[1] if len(sys.argv) > 1 else "backend/data.json"
 
 def check_tauri():
     tauri = psutil.Process(os.getppid())
@@ -27,6 +27,7 @@ threading.Thread(target=check_tauri, daemon=True).start()
 app = FastAPI()
 origins = [
     "http://localhost:8080",
+    "http://localhost:3000",
     "http://localhost:5173",
     "tauri://localhost"
 ]

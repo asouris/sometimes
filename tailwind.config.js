@@ -5,7 +5,10 @@ export default {
         "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    fontFamily: {
+      sans: ['Adwaita Sans'],
+      mono: ['Noto Sans Mono']
+    },
   },
   plugins: [],
 }
