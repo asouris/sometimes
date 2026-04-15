@@ -49,3 +49,8 @@ pip install --upgrade pip
 pip install fastapi psutil uvicorn 
 python main.py
 ```
+
+## To-do
+
+- [ ] Editar historial
+- [ ] Eliminar historial
