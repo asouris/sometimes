@@ -209,7 +209,7 @@ function App() {
     return (
         <div className="flex h-screen items-center justify-center">
             <div className="w-1/2 border border-black rounded flex">
-                <div className="h-80 w-1/3 bg-gray-100 border-r border-black rounded-l flex flex-col">
+                <div className="h-80 w-1/3 bg-gray-100 border-r border-black rounded-l flex flex-col overflow-scroll">
                     <div className="border-b border-black p-3 hover:bg-gray-200 flex items-center justify-center">
                         <input id="projectname" className="font-sans focus:outline-none bg-transparent px-1 border-b border-black grow min-w-0" type="text" placeholder="name..."/> 
                         <button onClick={() => addProject()} className="pl-2" ><IoAdd size={20}/></button>
