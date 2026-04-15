@@ -180,4 +180,4 @@ def save():
 
 
 if __name__ == '__main__':
-    uvicorn.run(app, host="127.0.0.1", port=6769, reload=False, workers=1)
+    uvicorn.run(app, host="127.0.0.1", port=6767, reload=False, workers=1)
