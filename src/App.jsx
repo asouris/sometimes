@@ -11,7 +11,7 @@ import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
 import Timer from "./Timer.jsx";
 
-const API = "http://127.0.0.1:8000"
+const API = "http://127.0.0.1:6767"
 const isTauri = '__TAURI_INTERNALS__' in window;
 
 const mixedFetch = async (url) => {

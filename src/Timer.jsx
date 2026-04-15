@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import axios from 'axios';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
-const API = "http://127.0.0.1:8000"
+const API = "http://127.0.0.1:6767"
 
 function toreadableTime(seconds){
     return new Date(seconds * 1000).toISOString().substring(11, 19);
