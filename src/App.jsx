@@ -2,10 +2,14 @@ import { CiTimer } from "react-icons/ci";
 import { IoTimeSharp } from "react-icons/io5";
 import { IoTimeOutline } from "react-icons/io5";
 import { IoPlayCircleOutline } from "react-icons/io5";
+import { IoAddCircleOutline } from "react-icons/io5";
 import { IoAdd } from "react-icons/io5";
 import { IoStopCircleOutline } from "react-icons/io5";
+import { BsThreeDotsVertical } from "react-icons/bs";
+import { IoTrashOutline } from "react-icons/io5";
 
-import { useState, useEffect } from 'react'
+
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
@@ -14,24 +18,36 @@ import Timer from "./Timer.jsx";
 const API = "http://127.0.0.1:6767"
 const isTauri = '__TAURI_INTERNALS__' in window;
 
-const mixedFetch = async (url) => {
+const mixedFetch = async (url, method = "GET", body = null) => {
   const isTauri = '__TAURI_INTERNALS__' in window;
 
   if (isTauri) {
     try {
-      return await tauriFetch(url);
+      return await tauriFetch(url, {
+        method,
+        headers: {
+            'content-type': 'application/json'
+        },
+        body: body ? JSON.stringify(body) : undefined
+      });
     } catch (error) {
       console.error("Tauri Fetch Error:", error);
       throw error;
     }
   } else {
     return await window.fetch(url, {
+        method,
         headers: {
             'content-type': 'application/json'
-        }}
+        },
+        body: body ? JSON.stringify(body) : undefined}
     );
   }
 };
+
+function twoDigitString(num) {
+    return num.toString().padStart(2, '0');
+}
 
 console.log(isTauri);
 
@@ -41,6 +57,13 @@ function App() {
 
     const [showingIndex, setShowingIndex] = useState(null);
     const [msgVisible, setMsgVisible] = useState(false);
+
+    const [manSeconds, setManSeconds] = useState(0);
+    const [manMinutes, setManMinutes] = useState(0);
+    const [manHours, setManHours] = useState(0);
+
+    const [openMenuIndex, setOpenMenuIndex] = useState(null);
+    const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         const loadProjects = async () => {
@@ -56,6 +79,7 @@ function App() {
 
         loadProjects();
     }, []);
+
 
     function showProject (index){
         console.log(index);
@@ -130,6 +154,14 @@ function App() {
         }
     }
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            save();
+        }, 3 * 60 * 1000); // 3 minutes
+
+        return () => clearInterval(interval);
+    }, []);
+
     function toreadableTime(seconds){
         return new Date(seconds * 1000).toISOString().substring(11, 19);
     }
@@ -145,7 +177,16 @@ function App() {
                 else{
                     const descField = document.getElementById('timerdesc');
                     if(document.activeElement === descField){
-                        startTimer(showingIndex);
+                        const isManualTimeZero =
+                            Math.floor(manHours) === 0 &&
+                            Math.floor(manMinutes) === 0 &&
+                            Math.floor(manSeconds) === 0;
+
+                        if (isManualTimeZero) {
+                            startTimer(showingIndex);
+                        } else {
+                            addHistory(showingIndex);
+                        }
                     }
                     else{
                         stopTimer(showingIndex);
@@ -204,7 +245,54 @@ function App() {
         return () => {
             document.removeEventListener('keyup', handleKeyUp);
         };
-    }, [showingIndex, projects]);
+    }, [showingIndex, projects, manHours, manMinutes, manSeconds]);
+
+    function handleWheel (e, prev, func, min, max) {
+        e.preventDefault();
+        const step = e.deltaY < 0 ? -0.15 : 0.15; 
+        let newValue = prev + step;
+        if (newValue > max) newValue = min;
+        if (newValue < min) newValue = max;
+        func(newValue);
+    }
+
+    function clearManTimer() {
+        setManHours(0);
+        setManMinutes(0);
+        setManSeconds(0);
+        document.getElementById('timerdesc').value = "";
+    }
+
+    async function addHistory(pId) {
+        const desc = document.getElementById("timerdesc").value;
+        const payload = {
+            desc: desc,
+            total: Math.floor(manHours) * 3600 + Math.floor(manMinutes) * 60 + Math.floor(manSeconds),
+        };
+        try {
+            const res = await mixedFetch(API + `/projects/${pId}/history`,
+                "POST",
+                payload
+            );
+            await update();
+
+        } catch (error) {
+            console.error(error);
+    }
+    }
+
+    async function deleteHistory (p_id, h_id){
+        try {
+            await mixedFetch(API + `/projects/${p_id}/history/${h_id}`, "DELETE");
+            console.log("deleted history");
+            await update();
+
+        } catch (error) {
+            console.error(error);
+        }
+
+        setOpenMenuIndex(null);
+    }
 
     return (
         <div className="flex h-screen items-center justify-center">
@@ -226,30 +314,68 @@ function App() {
                 <div className="min-w-0 w-1/2 grow h-80 p-3 flex flex-col">
                     {showingIndex!=null ?
                         (<div className="flex flex-col h-full">
-                            <div className="flex items-center px-3 pb-2">
-                                <IoTimeOutline size={20}/>
-                                <div className="text-lg px-3 font-mono ">{toreadableTime(projects[showingIndex].total)}</div>
+                            <div className="flex items-center justify-between px-3 pb-2">
+                                <div className="flex items-center">
+                                    <IoTimeOutline size={20}/>
+                                    <div className="text-lg px-3 font-mono ">{toreadableTime(projects[showingIndex].total)}</div>
+                                </div>
                             </div>
                             <div className="flex flex-col border rounded grow h-4/5">
                                 {(projects[showingIndex].state==="Not tracking") ?
                                     (
                                         <div className="flex p-3">
-                                            <div className="pr-2 font-mono">{toreadableTime(0)}</div>
+                                            <div onClick={() => clearManTimer()} className="flex pr-2 font-mono">
+                                                <div onWheel={(e) => handleWheel(e, manHours, setManHours, 0, 999)}>
+                                                    {twoDigitString(Math.floor(manHours))}:
+                                                </div>
+                                                <div onWheel={(e) => handleWheel(e, manMinutes, setManMinutes, 0, 59)}>
+                                                    {twoDigitString(Math.floor(manMinutes))}:
+                                                </div>
+                                                <div onWheel={(e) => handleWheel(e, manSeconds, setManSeconds, 0, 59)}>
+                                                    {twoDigitString(Math.floor(manSeconds))}
+                                                </div>
+                                            </div>
                                             <input id="timerdesc" className="focus:outline-none border-b border-black grow min-w-0" type="text" /> 
-                                            <button onClick={() => startTimer(showingIndex)} className="pl-2"><IoPlayCircleOutline size={25}/></button>
+                                            {Math.floor(manHours)===0&&Math.floor(manMinutes)===0&&Math.floor(manSeconds)===0 ? 
+                                            (<button onClick={() => startTimer(showingIndex)} className="pl-2"><IoPlayCircleOutline size={25}/></button>):
+                                            (<button onClick={() => addHistory(showingIndex)} className="pl-2"><IoAddCircleOutline size={25}/></button>)}
+                                            
                                         </div>
                                     ) :
                                     (
                                         <div className="flex p-3 justify-end">
-                                            <Timer id={showingIndex} currentText={document.getElementById('timerdesc').value}/>
+                                            <Timer id={showingIndex} currentText={"..."}/>
                                             <button onClick={() => stopTimer(showingIndex)} className="pl-2 animate-pulse"><IoStopCircleOutline size={25}/></button>
                                         </div>
                                     )
                                 }
-                                <div className="h-full flex flex-col overflow-scroll">
+                                <div className="h-full flex flex-col overflow-y-scroll overflow-x-hidden">
                                     <div className="px-3">History</div>
                                     {projects[showingIndex].history.map((entry, i) => (
-                                        <div className="flex border-t px-3 hover:bg-gray-100">
+                                        <div
+                                        key={i} 
+                                        className="relative flex border-t px-3 hover:bg-gray-100"
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            setOpenMenuIndex(openMenuIndex===i ? null : i);
+                                            setMenuPos({
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                            });
+                                        }}
+                                        >
+                                            {openMenuIndex === i && (
+                                            <button 
+                                            className="fixed border rounded-full p-2 hover:bg-gray-100 z-10 bg-white"
+                                            style={{
+                                                top: menuPos.y,
+                                                left: menuPos.x,
+                                            }}
+                                            onClick={() => deleteHistory(showingIndex, i)}  
+                                            >
+                                                <IoTrashOutline />
+                                            </button>
+                                            )}
                                             <div className="font-mono font-light">{toreadableTime(entry.total)}</div>
                                             <div className="break-words text-wrap pl-2 font-light">{entry.desc}</div>
                                         </div>
